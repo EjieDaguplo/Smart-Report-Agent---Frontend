@@ -1,65 +1,118 @@
-import Image from "next/image";
+'use client';
+import { useState } from 'react';
+
+import { FileData, ActiveTab } from '@/types';
+import { useUpload } from '@/hooks/useUpload';
+import { useChat } from '@/hooks/useChat';
+
+import GlobalStyles  from '@/components/GlobalStyle';
+import Header        from '@/components/Header';
+import UploadZone    from '@/components/Uploadzone';
+import StatsGrid     from '@/components/Statsgrid';
+import TabBar        from '@/components/Tabbar';
+import ChatPanel     from '@/components/Chatpanel';
+import DataPreview   from '@/components/DataPreview';
+import NumericStats  from '@/input/NumericStats';
+import Footer from '@/components/Footer';
+import SystemFlow from '@/components/SystemFlow';
 
 export default function Home() {
+  const [fileData,   setFileData]   = useState<FileData | null>(null);
+  const [activeTab,  setActiveTab]  = useState<ActiveTab>('chat');
+
+  const { messages, input, setInput, loading, chatRef, addMsg, sendMessage, resetMessages } = useChat();
+
+  const { uploading, dragOver, setDragOver, handleFile, onDrop } = useUpload({
+    onSuccess: (data, message) => {
+      setFileData(data);
+      setActiveTab('chat');
+      addMsg(message.role, message.text);
+    },
+    onError: (message) => addMsg(message.role, message.text),
+  });
+
+  const handleNewFile = () => {
+    setFileData(null);
+    resetMessages();
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div
+      className="min-h-screen bg-slate-950 text-slate-100 flex flex-col"
+      style={{ fontFamily: "'Figtree', sans-serif" }}
+    >
+      <GlobalStyles />
+      <Header fileData={fileData} />
+
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+
+        {/* Upload */}
+        {!fileData && (
+          <UploadZone
+            uploading={uploading}
+            dragOver={dragOver}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+            onFileChange={handleFile}
+          />
+        )}
+
+        {/* Stats + Tabs + Tab content */}
+        {fileData && (
+          <>
+            <StatsGrid fileData={fileData} />
+
+            <TabBar
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              onNewFile={handleNewFile}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+            {activeTab === 'chat' && (
+              <ChatPanel
+                messages={messages}
+                input={input}
+                loading={loading}
+                chatRef={chatRef}
+                fileData={fileData}
+                onInputChange={setInput}
+                onSend={(override) => sendMessage(fileData, override)}
+              />
+            )}
+
+            {activeTab === 'preview' && (
+              <div className="bg-slate-900/60 border border-slate-800/70 rounded-2xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800/60 bg-slate-900/40">
+                  <span className="text-sm font-medium text-slate-300">
+                    Showing first 50 of{' '}
+                    <span className="text-cyan-400">{fileData.totalRows.toLocaleString()}</span> rows
+                  </span>
+                  <span className="text-xs text-slate-600">{fileData.fileName}</span>
+                </div>
+                <DataPreview fileData={fileData} />
+              </div>
+            )}
+
+            {activeTab === 'stats' && (
+              <div className="bg-slate-900/60 border border-slate-800/70 rounded-2xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800/60 bg-slate-900/40">
+                  <span className="text-sm font-medium text-slate-300">Numeric Column Statistics</span>
+                  <span className="text-xs text-slate-600">{fileData.numericCols.length} numeric columns</span>
+                </div>
+                <NumericStats fileData={fileData} />
+              </div>
+            )}
+          </>
+        )}
       </main>
+
+      {/* <footer className="border-t border-slate-800/60 bg-slate-900/50 px-6 py-3.5 flex items-center gap-2 text-xs text-slate-600">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 anim-pulse" />
+        LGU Report Agent · Free AI · Next.js + Tailwind + Express · Vercel + Render
+      </footer> */}
+      <SystemFlow/>
+      <Footer/>
     </div>
   );
 }
