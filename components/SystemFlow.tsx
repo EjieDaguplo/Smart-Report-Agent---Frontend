@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+//Types
 interface FlowNode {
   id: string; icon: string; label: string; sublabel: string;
   color: string; glow: string; tags?: string[];
@@ -10,7 +10,7 @@ interface TrustPillar {
   icon: string; title: string; body: string; accent: string;
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
+//Data
 const NODES: FlowNode[] = [
   { id: 'upload',   icon: '📂', label: 'File Upload',         sublabel: 'Your .xlsx / .csv is received',          color: '#38bdf8', glow: 'rgba(56,189,248,0.25)',  tags: ['Local Processing', 'No Cloud Storage'] },
   { id: 'parse',    icon: '🔬', label: 'Data Parsing',         sublabel: 'Rows, columns & types extracted',        color: '#34d399', glow: 'rgba(52,211,153,0.25)',  tags: ['Type Detection', 'Missing Value Scan'] },
